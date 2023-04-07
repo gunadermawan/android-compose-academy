@@ -1,5 +1,6 @@
 package com.gunder.compose.drawer
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -38,7 +39,25 @@ fun DrawerApp() {
             })
         },
         drawerContent = {
-            DrawerContent(onItemSelected = {})
+            DrawerContent(onItemSelected = {
+                scope.launch {
+                    scaffoldState.drawerState.close()
+                    val snackbarResult = scaffoldState.snackbarHostState.showSnackbar(
+                        message = context.resources.getString(
+                            R.string.coming_soon,
+                            it
+                        ),
+                        actionLabel = context.resources.getString(R.string.subscribe_question)
+                    )
+                    if (snackbarResult == SnackbarResult.ActionPerformed) {
+                        Toast.makeText(
+                            context,
+                            context.resources.getString(R.string.subscribed_info),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            })
         },
         drawerGesturesEnabled = scaffoldState.drawerState.isOpen
     ) { paddingValues ->
