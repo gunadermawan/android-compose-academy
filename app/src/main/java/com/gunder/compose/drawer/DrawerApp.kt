@@ -1,6 +1,8 @@
 package com.gunder.compose.drawer
 
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,13 +12,13 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -57,6 +59,10 @@ fun DrawerApp() {
                         ).show()
                     }
                 }
+            }, onBackPressed = {
+                if (scaffoldState.drawerState.isOpen) {
+                    scope.launch { scaffoldState.drawerState.close() }
+                }
             })
         },
         drawerGesturesEnabled = scaffoldState.drawerState.isOpen
@@ -89,7 +95,11 @@ fun MyTopBar(onMenuClick: () -> Unit) {
 data class MenuItem(val title: String, val icon: ImageVector)
 
 @Composable
-fun DrawerContent(modifier: Modifier = Modifier, onItemSelected: (title: String) -> Unit) {
+fun DrawerContent(
+    modifier: Modifier = Modifier,
+    onItemSelected: (title: String) -> Unit,
+    onBackPressed: () -> Unit
+) {
     val items = listOf(
         MenuItem(title = stringResource(R.string.home), icon = Icons.Default.Home),
         MenuItem(title = stringResource(R.string.favourite), icon = Icons.Default.Favorite),
@@ -118,6 +128,34 @@ fun DrawerContent(modifier: Modifier = Modifier, onItemSelected: (title: String)
             }
         }
         Divider()
+    }
+    BackPressHandler { onBackPressed }
+}
+
+@Composable
+fun BackPressHandler(enabled: Boolean = true, onBackPressed: () -> Unit) {
+    val currentOnBackPressed by rememberUpdatedState(onBackPressed)
+    val backCallBack = remember {
+        object : OnBackPressedCallback(enabled) {
+            override fun handleOnBackPressed() {
+                currentOnBackPressed()
+            }
+
+        }
+    }
+    SideEffect {
+        backCallBack.isEnabled = enabled
+    }
+
+    val backDispatcher = checkNotNull(LocalOnBackPressedDispatcherOwner.current) {
+        "No OnBackPressedDispatcherOwner was provided via LocalOnBackPressedDispatcherOwner"
+    }.onBackPressedDispatcher
+
+    val lifeCycleCallback = LocalLifecycleOwner.current
+    DisposableEffect(lifeCycleCallback, backCallBack) {
+        onDispose {
+            backCallBack.remove()
+        }
     }
 }
 
